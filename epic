@@ -1,0 +1,16 @@
+# Simple wrapper shell script to save typing out all the parameters.
+./EPIC.py --catchment_type 1 \
+           --slope 45 \
+           --catchment_length 13 \
+           --rainfall 1000 \
+           --evaporation 400 \
+           --catchment_area 1000000 \
+           --pipe_file pipes_0.csv \
+           --pvc_rn 80000 \
+           --grp_rn 80000 \
+           --di_rn 80000 \
+           --reliability 0.7 \
+           --flow_frac 0.5 \
+           --market_price 0.03 \
+           --interest 0.05
+
