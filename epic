@@ -1,14 +1,15 @@
-./EPIC.py --catchment_type 1 \
-           --slope 7 \
+./EPIC.py --catchment_type 4 \
+           --slope 10 \
            --catchment_length 3000 \
-           --flow_duration_curve 5 \
-           --precipitation 1000 \
+           --flow_duration_curve 4 \
+           --precipitation 1600 \
            --potential_evaporation 400 \
            --catchment_area 15000000 \
-           --pipe_file pipes_0.csv \
+           --pipe_file pipes_1.csv \
            --reliability 0.7 \
            --efficiency 0.82 \
            --market_price 0.03 \
            --interest 0.05 \
+           --plot FIT \
            --verbose
 

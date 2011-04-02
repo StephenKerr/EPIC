@@ -126,11 +126,12 @@ def get_friction_coeff(Q=0.0, D=0.0, E=0.0, M=''): # {{{
     f = 0.0
     Rn = get_renaulds_number(Q = Q, D = D)
 
-    if   M == 'PVC':
-        # This friction coeff comes from the Blasius equation
-        f = 0.0079 * Rn**0.25
-    
-    elif M == 'DI' or M == 'GRP':
+    ####if   M == 'PVC':
+    ####    # This friction coeff comes from the Blasius equation
+    ####    f = 0.079 / Rn**0.25
+    ####
+    ####elif M == 'DI' or M == 'GRP':
+    if True: # Just a place holder to use the same eqn for all
         area_of_pipe = pi * (D / 2)**2
         
         seed = 1
@@ -139,7 +140,7 @@ def get_friction_coeff(Q=0.0, D=0.0, E=0.0, M=''): # {{{
         fl = []
         fl.append(float(seed))
         for i in range(1, iterations):
-            f = ((1) - (-2 * log((  (E / 3.7 * D) + (2.51 / (Rn * sqrt(fl[i-1])))   ), 10)))**2
+            f = ((1) / (-2 * log((  (E / (3.7 * D)) + (2.51 / (Rn * sqrt(fl[i-1])))   ), 10)))**2
             fl.append(f)
 
     return f
@@ -172,7 +173,12 @@ def get_optimum_pipe_for_head(head               = 0.0, # {{{
         di          = float(di)
         grp         = float(grp)
         total_annual_cost = 0
-
+        
+        if verbose: print '\tDiameter = ', diameter
+        if verbose: print '\t\tPVC Cost/m = ', pvc
+        if verbose: print '\t\tDI  Cost/m = ', di
+        if verbose: print '\t\tGRP Cost/m = ', grp
+        
         pipe = {'diameter'              : diameter,
                 'material'              : '',
                 'head_loss'             : 0.0,
@@ -187,14 +193,20 @@ def get_optimum_pipe_for_head(head               = 0.0, # {{{
             # PVC {{{
             annual_capital_cost_pvc = penstock_length * pvc * interest
 
-            friction_coeff = get_friction_coeff(Q = design_flow, D = diameter, M = 'PVC')
+            friction_coeff = get_friction_coeff(Q = design_flow, D = diameter, E = E_PVC, M = 'PVC')
+            if verbose: print '\t\tPVC friction coeff = ', friction_coeff
             
             head_loss_pvc = get_head_loss(F = friction_coeff, L = penstock_length, D = diameter, Q = design_flow)
             
             annual_head_loss_cost_pvc = head_loss_pvc * design_flow * G * efficiency * (365 * 24) * (FIT + market_price)
 
-            # }}} End of PVC
             total_annual_cost = annual_capital_cost_pvc + annual_head_loss_cost_pvc
+            
+            if verbose: print '\t\tPVC head loss = ', head_loss_pvc
+            if verbose: print '\t\tPVC annual head loss cost = ', annual_head_loss_cost_pvc
+            if verbose: print '\t\tPVC annual capital cost = ', annual_capital_cost_pvc
+            if verbose: print '\t\tPVC total annual cost = ', total_annual_cost
+            # }}} End of PVC
             pipe['annual_capital_cost']     = annual_capital_cost_pvc
             pipe['annual_head_loss_cost']   = annual_head_loss_cost_pvc
             pipe['head_loss']               = head_loss_pvc
@@ -205,23 +217,35 @@ def get_optimum_pipe_for_head(head               = 0.0, # {{{
             annual_capital_cost_di = penstock_length * di * interest
 
             friction_coeff = get_friction_coeff(Q = design_flow, D = diameter, E = E_DI, M = 'DI')
+            if verbose: print '\t\tDI friction coeff = ', friction_coeff
             
             head_loss_di = get_head_loss(F = friction_coeff, L = penstock_length, D = diameter, Q = design_flow)
             
             annual_head_loss_cost_di = head_loss_di * design_flow * G * efficiency * (365 * 24) * (FIT + market_price)
 
             total_annual_cost_di = annual_capital_cost_di + annual_head_loss_cost_di
+            
+            if verbose: print '\t\tDI head loss = ', head_loss_di
+            if verbose: print '\t\tDI annual head loss cost = ', annual_head_loss_cost_di
+            if verbose: print '\t\tDI annual capital cost = ', annual_capital_cost_di
+            if verbose: print '\t\tDI total annual cost = ', total_annual_cost_di
             # }}} End of Ductile Iron
             # Glass Reinforced Plastic {{{
             annual_capital_cost_grp = penstock_length * grp * interest
             
             friction_coeff = get_friction_coeff(Q = design_flow, D = diameter, E = E_GRP, M = 'GRP')
+            if verbose: print '\t\tGRP friction coeff = ', friction_coeff
             
             head_loss_grp = get_head_loss(F = friction_coeff, L = penstock_length, D = diameter, Q = design_flow)
             
             annual_head_loss_cost_grp = head_loss_grp * design_flow * G * efficiency * (365 * 24) * (FIT + market_price)
 
             total_annual_cost_grp = annual_capital_cost_grp + annual_head_loss_cost_grp
+            
+            if verbose: print '\t\tGRP head loss = ', head_loss_grp
+            if verbose: print '\t\tGRP annual head loss cost = ', annual_head_loss_cost_grp
+            if verbose: print '\t\tGRP annual capital cost = ', annual_capital_cost_grp
+            if verbose: print '\t\tGRP total annual cost = ', total_annual_cost_grp
             # }}} End of Glass Reinforced Plastic
 
             if total_annual_cost_grp > total_annual_cost_di:
@@ -250,7 +274,7 @@ def get_optimum_pipe_for_head(head               = 0.0, # {{{
         # }}} End of for each diameter
 
     return optimum_pipe
-    # }}} End of get_optimum_pipe 
+    # }}} End of get_optimum_pipe_for_head 
 
 # Flow Duration Curve {{{
 # Flow duration curve take from table in "Report No. 126 - Hydrology Of Soil

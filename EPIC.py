@@ -23,6 +23,7 @@
 #            --reliability 0.7 \
 #            --efficiency 0.82 \
 #            --market_price 0.03 \
+#            --plot total_penstock_cost \
 #            --interest 0.05 | less
 
 from math import sin, cos, tan, ceil, pi
@@ -30,7 +31,9 @@ from math import radians as rad
 from optparse import OptionParser
 from prettytable import PrettyTable
 import sys
+import matplotlib.pyplot as plt
 
+# other EPIC files
 from hydro_utils import *
 from constants import *
 
@@ -67,6 +70,8 @@ parser.add_option('--market_price', dest='market_price',
                   help='Fluctuant value per kW in GBP')
 parser.add_option('--interest', dest='interest',
                   help='Rate of interest charged on project loan.')
+parser.add_option('--plot', dest='plot',
+                  help='Plot to make.')
 (opts, args) = parser.parse_args()
 
 # Ensure passed parameters are the correct type
@@ -82,6 +87,7 @@ opts.reliability = float(opts.reliability)
 opts.efficiency = float(opts.efficiency)
 opts.market_price = float(opts.market_price)
 opts.interest = float(opts.interest)
+opts.plot = str(opts.plot)
 
 ### }}} End of Take options
 
@@ -156,10 +162,15 @@ scheme_annual_revenue   = {'diameter'              : 0.0,
                            'annual_revenue'        : 0.0}
 # }}} Initialise optimum schemes
 
+x_axis = []
+y_axis = []
 for h in range(1, int(ceil(max_H))): ### for each head {{{
     if opts.v: print 'Head = %d' % h
     
     penstock_length = float(h) / sin(rad(opts.slope))
+    if opts.plot == 'penstock_length':
+        x_axis.append(h)
+        y_axis.append(penstock_length)
     Hz = float(h) / tan(rad(opts.slope))
     
     area_frac = get_area(opts.catch_type, opts.cl, Hz, opts.v)
@@ -178,6 +189,9 @@ for h in range(1, int(ceil(max_H))): ### for each head {{{
     capacity_estimate = design_flow * h * HEP
     if capacity_estimate <= 100: FIT = GTHigh
     else: FIT = GTLow
+    if opts.plot == 'FIT':
+        x_axis.append(h)
+        y_axis.append(FIT)
     
     # TODO We were doing this before we went to bed.
     pipe = get_optimum_pipe_for_head(head            = h,
@@ -188,23 +202,33 @@ for h in range(1, int(ceil(max_H))): ### for each head {{{
                                      efficiency      = opts.efficiency,
                                      market_price    = opts.market_price, 
                                      interest        = opts.interest,
-                                     verbose         = opts.v)
+                                     verbose         = False)
         
     if opts.v: print '\tOptimum pipe for this head = ', pipe
     
     # Capital expenditure of penstock
     total_penstock_cost = pipe['annual_capital_cost'] / opts.interest
     if opts.v: print '\tTotal Penstock cost = %f' % total_penstock_cost
+    if opts.plot == 'total_penstock_cost':
+        x_axis.append(h)
+        y_axis.append(total_penstock_cost)
     
     # The total project cost has quite a predicable breakdown for hydro schemes.
     # Therefore the rough fraction is stored as a constant.
     total_project_cost = total_penstock_cost / PenFrac
     if opts.v: print '\tTotal Project Cost = %f' % total_project_cost
+    if opts.plot == 'total_project_cost':
+        x_axis.append(h)
+        y_axis.append(total_project_cost)
     
     capacity = get_scheme_capacity(head = h,
                                    head_loss = pipe['head_loss'],
                                    Q = design_flow,
                                    efficiency = opts.efficiency)
+    if opts.v: print '\tCapacity = %f' % capacity
+    if opts.plot == 'capacity':
+        x_axis.append(h)
+        y_axis.append(capacity)
     
     annual_revenue = get_scheme_annual_revenue(C = capacity,
                                                FIT = FIT,
@@ -214,17 +238,28 @@ for h in range(1, int(ceil(max_H))): ### for each head {{{
                                                total = total_project_cost)
     
     if opts.v: print '\tScheme Annual Revenue = %f' % annual_revenue
-    
+    if opts.plot == 'annual_revenue':
+        x_axis.append(h)
+        y_axis.append(annual_revenue)
 
     # The payback period, cost/kW and return are the main economic factors of a scheme.
     payback_period = total_project_cost / annual_revenue
     if opts.v: print '\tScheme Payback Period = %f' % payback_period
+    if opts.plot == 'payback_period':
+        x_axis.append(h)
+        y_axis.append(payback_period)
     
     cost_per_kw = total_project_cost / capacity
     if opts.v: print '\tScheme Cost/kW = %f' % cost_per_kw
+    if opts.plot == 'cost_per_kw':
+        x_axis.append(h)
+        y_axis.append(cost_per_kw)
 
     annual_return_on_investment = annual_revenue / total_project_cost * 100
     if opts.v: print '\tScheme annual ROI = %f' % annual_return_on_investment 
+    if opts.plot == 'annual_roi':
+        x_axis.append(h)
+        y_axis.append(annual_return_on_investment)
     
     # Now we have all the desired economic factors we can choose the optimum scheme
     #   for each.
@@ -240,7 +275,7 @@ for h in range(1, int(ceil(max_H))): ### for each head {{{
         scheme_cost_per_kw['annual_revenue']    = annual_revenue
         # }}} End of Cost/kW
     
-    if payback_period < scheme_payback_period['payback_period']: # {{{
+    if payback_period > 0 and payback_period < scheme_payback_period['payback_period']: # {{{
         scheme_payback_period['diameter']       = pipe['diameter']
         scheme_payback_period['material']       = pipe['material']
         scheme_payback_period['head']           = h
@@ -352,12 +387,11 @@ results.add_row(['Annual Revenue',
                  scheme_annual_revenue['annual_revenue'],
                  scheme_annual_roi['annual_revenue']])
 print results
-#print 'Detail \t Optimum Payback \t Optimum kW'
-#print 'Head \t %d \t %d' % (optimum_h_payback[0], optimum_h_cost_kw[0])
+print opts.pipe_file
 ### }}} End of Print results
 
-
-
-
-
+plt.plot(x_axis, y_axis, 'ro')
+plt.axis([min(x_axis) - 5, max(x_axis) + 5,
+          min(y_axis) - 5, max(y_axis) * 1.05])
+plt.show()
 
