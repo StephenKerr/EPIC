@@ -23,6 +23,7 @@
 #            --reliability 0.7 \
 #            --efficiency 0.82 \
 #            --market_price 0.03 \
+#            --heads 50,100 \
 #            --plot total_penstock_cost \
 #            --interest 0.05 | less
 
@@ -70,8 +71,10 @@ parser.add_option('--market_price', dest='market_price',
                   help='Fluctuant value per kW in GBP')
 parser.add_option('--interest', dest='interest',
                   help='Rate of interest charged on project loan.')
-parser.add_option('--plot', dest='plot',
-                  help='Plot to make.')
+parser.add_option('--plots', dest='plots',
+                  help='Plots to make.')
+parser.add_option('--heads', dest='heads',
+                  help='Head values to test.')
 (opts, args) = parser.parse_args()
 
 # Ensure passed parameters are the correct type
@@ -87,7 +90,8 @@ opts.reliability = float(opts.reliability)
 opts.efficiency = float(opts.efficiency)
 opts.market_price = float(opts.market_price)
 opts.interest = float(opts.interest)
-opts.plot = str(opts.plot)
+if opts.plots: opts.plots = str(opts.plots)
+if opts.heads: opts.heads = str(opts.heads)
 
 ### }}} End of Take options
 
@@ -160,19 +164,45 @@ scheme_annual_revenue   = {'diameter'              : 0.0,
                            'payback_period'        : 999999999.9,
                            'annual_roi'            : 0.0,
                            'annual_revenue'        : 0.0}
+
+scheme_capacity         = {'diameter'              : 0.0,
+                           'material'              : '',
+                           'head'                  : 0.0,
+                           'capacity'              : 0.0,
+                           'project_cost'          : 0.0,
+                           'cost_per_kw'           : 999999999.9,
+                           'payback_period'        : 999999999.9,
+                           'annual_roi'            : 0.0,
+                           'annual_revenue'        : 0.0}
 # }}} Initialise optimum schemes
 
+# If no heads are specified then just compare all possible heads up to the maximum
+if opts.plots:
+    plots = opts.plots.split(',')
+
+# If no heads are specified then just compare all possible heads up to the maximum
+if opts.heads:
+    heads = opts.heads.split(',')
+    for i, h in enumerate(heads): heads[i] = int(h)
+else:
+    heads = range(1, int(ceil(max_H)))
+
+# Initialise plot axis
 x_axis = []
 y_axis = []
-for h in range(1, int(ceil(max_H))): ### for each head {{{
+
+for h in heads: ### for each head {{{
     if opts.v: print 'Head = %d' % h
     
+    # penstock_length {{{
     penstock_length = float(h) / sin(rad(opts.slope))
-    if opts.plot == 'penstock_length':
+    if plots.count('penstock_length'):
         x_axis.append(h)
         y_axis.append(penstock_length)
     Hz = float(h) / tan(rad(opts.slope))
+    # }}} penstock_length
     
+    # Flow rate {{{
     area_frac = get_area(opts.catch_type, opts.cl, Hz, opts.v)
     avail_ca = opts.ca * area_frac
     
@@ -181,19 +211,32 @@ for h in range(1, int(ceil(max_H))): ### for each head {{{
     catchment_vol = avail_ca * ((opts.aar - opts.aae) / 1000) # Divide by 1000 to put mm into meters
     avg_flow_rate = catchment_vol / (365 * 24 * 60 * 60) # In cumecs
     if opts.v: print '\tAverage flow rate = %(flow)s' % {'flow': avg_flow_rate}
+    if plots.count('avg_flow_rate'):
+        x_axis.append(h)
+        y_axis.append(avg_flow_rate)
+    # }}} Flow rate
     
+    # Design flow {{{
     design_flow = avg_flow_rate * flow_duration_curve[opts.fdc_index]
+    if opts.v: print '\tDesign flow = %(flow)s' % {'flow': design_flow}
+    if plots.count('design_flow'):
+        x_axis.append(h)
+        y_axis.append(design_flow)
+    # }}} End of Design flow
+
+    # FIT {{{
     # The Hydro Estimation Parameter (HEP) is just a number used to quickly estimate the
     #   installed power capacity in kW.
     # It comes from a combination of G(9.81) and an efficiency of around 82%.
     capacity_estimate = design_flow * h * HEP
     if capacity_estimate <= 100: FIT = GTHigh
     else: FIT = GTLow
-    if opts.plot == 'FIT':
+    if plots.count('FIT'):
         x_axis.append(h)
         y_axis.append(FIT)
+    # }}} FIT
     
-    # TODO We were doing this before we went to bed.
+    # Get optimum pipe {{{
     pipe = get_optimum_pipe_for_head(head            = h,
                                      pipe_table      = pipe_table,
                                      design_flow     = design_flow,
@@ -203,13 +246,27 @@ for h in range(1, int(ceil(max_H))): ### for each head {{{
                                      market_price    = opts.market_price, 
                                      interest        = opts.interest,
                                      verbose         = False)
-        
     if opts.v: print '\tOptimum pipe for this head = ', pipe
+    # }}} End of Get optimum pipe
     
+    # capacity {{{
+    capacity = get_scheme_capacity(head = h,
+                                   head_loss = pipe['head_loss'],
+                                   Q = design_flow,
+                                   efficiency = opts.efficiency)
+    if opts.v: print '\tCapacity = %f' % capacity
+    if plots.count('capacity'):
+        x_axis.append(h)
+        y_axis.append(capacity)
+    if capacity < 15: continue # 15kW is the minimum threshold for a small hydroscheme (rather than a pico,
+                               #   which has different equations relating to cost, and methodologies associated).
+    # }}} End of capacity
+    
+    # Total project cost {{{
     # Capital expenditure of penstock
     total_penstock_cost = pipe['annual_capital_cost'] / opts.interest
     if opts.v: print '\tTotal Penstock cost = %f' % total_penstock_cost
-    if opts.plot == 'total_penstock_cost':
+    if plots.count('total_penstock_cost'):
         x_axis.append(h)
         y_axis.append(total_penstock_cost)
     
@@ -217,19 +274,12 @@ for h in range(1, int(ceil(max_H))): ### for each head {{{
     # Therefore the rough fraction is stored as a constant.
     total_project_cost = total_penstock_cost / PenFrac
     if opts.v: print '\tTotal Project Cost = %f' % total_project_cost
-    if opts.plot == 'total_project_cost':
+    if plots.count('total_project_cost'):
         x_axis.append(h)
         y_axis.append(total_project_cost)
+    # }}} End of Total project cost
     
-    capacity = get_scheme_capacity(head = h,
-                                   head_loss = pipe['head_loss'],
-                                   Q = design_flow,
-                                   efficiency = opts.efficiency)
-    if opts.v: print '\tCapacity = %f' % capacity
-    if opts.plot == 'capacity':
-        x_axis.append(h)
-        y_axis.append(capacity)
-    
+    # Annual Revenue {{{
     annual_revenue = get_scheme_annual_revenue(C = capacity,
                                                FIT = FIT,
                                                P = opts.market_price,
@@ -238,28 +288,35 @@ for h in range(1, int(ceil(max_H))): ### for each head {{{
                                                total = total_project_cost)
     
     if opts.v: print '\tScheme Annual Revenue = %f' % annual_revenue
-    if opts.plot == 'annual_revenue':
+    if plots.count('annual_revenue'):
         x_axis.append(h)
         y_axis.append(annual_revenue)
+    # }}} Annual Revenue
 
+    # Payback period {{{
     # The payback period, cost/kW and return are the main economic factors of a scheme.
     payback_period = total_project_cost / annual_revenue
     if opts.v: print '\tScheme Payback Period = %f' % payback_period
-    if opts.plot == 'payback_period':
+    if plots.count('payback_period'):
         x_axis.append(h)
         y_axis.append(payback_period)
+    # }}} Payback period
     
+    # Cost/kW {{{
     cost_per_kw = total_project_cost / capacity
     if opts.v: print '\tScheme Cost/kW = %f' % cost_per_kw
-    if opts.plot == 'cost_per_kw':
+    if plots.count('cost_per_kw'):
         x_axis.append(h)
         y_axis.append(cost_per_kw)
+    # }}} Cost/kW
 
+    # Annual RIO {{{
     annual_return_on_investment = annual_revenue / total_project_cost * 100
     if opts.v: print '\tScheme annual ROI = %f' % annual_return_on_investment 
-    if opts.plot == 'annual_roi':
+    if plots.count('annual_roi'):
         x_axis.append(h)
         y_axis.append(annual_return_on_investment)
+    # }}} Annual RIO
     
     # Now we have all the desired economic factors we can choose the optimum scheme
     #   for each.
@@ -287,7 +344,7 @@ for h in range(1, int(ceil(max_H))): ### for each head {{{
         scheme_payback_period['annual_revenue'] = annual_revenue
         # }}} End of Payback Period
     
-    if annual_return_on_investment > scheme_payback_period['annual_roi']: # {{{
+    if annual_return_on_investment > scheme_annual_roi['annual_roi']: # {{{
         scheme_annual_roi['diameter']           = pipe['diameter']
         scheme_annual_roi['material']           = pipe['material']
         scheme_annual_roi['head']               = h
@@ -299,7 +356,7 @@ for h in range(1, int(ceil(max_H))): ### for each head {{{
         scheme_annual_roi['annual_revenue']     = annual_revenue
         # }}} End of Annual ROI
     
-    if annual_revenue > scheme_payback_period['annual_revenue']: # {{{
+    if annual_revenue > scheme_annual_revenue['annual_revenue']: # {{{
         scheme_annual_revenue['diameter']       = pipe['diameter']
         scheme_annual_revenue['material']       = pipe['material']
         scheme_annual_revenue['head']           = h
@@ -310,6 +367,18 @@ for h in range(1, int(ceil(max_H))): ### for each head {{{
         scheme_annual_revenue['annual_roi']     = annual_return_on_investment
         scheme_annual_revenue['annual_revenue'] = annual_revenue
         # }}} End of Annual Revenue
+    
+    if capacity > scheme_capacity['capacity']: # {{{
+        scheme_capacity['diameter']       = pipe['diameter']
+        scheme_capacity['material']       = pipe['material']
+        scheme_capacity['head']           = h
+        scheme_capacity['capacity']       = capacity
+        scheme_capacity['project_cost']   = total_project_cost
+        scheme_capacity['cost_per_kw']    = cost_per_kw
+        scheme_capacity['payback_period'] = payback_period
+        scheme_capacity['annual_roi']     = annual_return_on_investment
+        scheme_capacity['annual_revenue'] = annual_revenue
+        # }}} End of Capacity
         
 ### }}} End of for each head loop
 
@@ -338,51 +407,61 @@ for h in range(1, int(ceil(max_H))): ### for each head {{{
 # Now we have finished the calculations we can print the results in a table
 results = PrettyTable(['Detail',
                        'Optimum Cost/kW',
+                       'Optimum Capacity',
                        'Optimum Payback',
                        'Optimum Revenue',
                        'Optimal ROI'])
 results.add_row(['Diameter',
                  scheme_cost_per_kw['diameter'],
+                 scheme_capacity['diameter'],
                  scheme_payback_period['diameter'],
                  scheme_annual_revenue['diameter'],
                  scheme_annual_roi['diameter']])
 results.add_row(['Material',
                  scheme_cost_per_kw['material'],
+                 scheme_capacity['material'],
                  scheme_payback_period['material'],
                  scheme_annual_revenue['material'],
                  scheme_annual_roi['material']])
 results.add_row(['Head',
                  scheme_cost_per_kw['head'],
+                 scheme_capacity['head'],
                  scheme_payback_period['head'],
                  scheme_annual_revenue['head'],
                  scheme_annual_roi['head']])
 results.add_row(['Capacity',
                  scheme_cost_per_kw['capacity'],
+                 scheme_capacity['capacity'],
                  scheme_payback_period['capacity'],
                  scheme_annual_revenue['capacity'],
                  scheme_annual_roi['capacity']])
 results.add_row(['Project Cost',
                  scheme_cost_per_kw['project_cost'],
+                 scheme_capacity['project_cost'],
                  scheme_payback_period['project_cost'],
                  scheme_annual_revenue['project_cost'],
                  scheme_annual_roi['project_cost']])
 results.add_row(['Cost/kW',
                  scheme_cost_per_kw['cost_per_kw'],
+                 scheme_capacity['cost_per_kw'],
                  scheme_payback_period['cost_per_kw'],
                  scheme_annual_revenue['cost_per_kw'],
                  scheme_annual_roi['cost_per_kw']])
 results.add_row(['Payback Period',
                  scheme_cost_per_kw['payback_period'],
+                 scheme_capacity['payback_period'],
                  scheme_payback_period['payback_period'],
                  scheme_annual_revenue['payback_period'],
                  scheme_annual_roi['payback_period']])
 results.add_row(['Annual ROI',
                  scheme_cost_per_kw['annual_roi'],
+                 scheme_capacity['annual_roi'],
                  scheme_payback_period['annual_roi'],
                  scheme_annual_revenue['annual_roi'],
                  scheme_annual_roi['annual_roi']])
 results.add_row(['Annual Revenue',
                  scheme_cost_per_kw['annual_revenue'],
+                 scheme_capacity['annual_revenue'],
                  scheme_payback_period['annual_revenue'],
                  scheme_annual_revenue['annual_revenue'],
                  scheme_annual_roi['annual_revenue']])
@@ -390,8 +469,17 @@ print results
 print opts.pipe_file
 ### }}} End of Print results
 
-plt.plot(x_axis, y_axis, 'ro')
-plt.axis([min(x_axis) - 5, max(x_axis) + 5,
-          min(y_axis) - 5, max(y_axis) * 1.05])
-plt.show()
+if plots.count('capacity'): # TODO Make capacity look pretty
+    if opts.heads: plt.plot(x_axis, y_axis, 'bo')
+    else: plt.plot(x_axis, y_axis, '-')
+    plt.axis([min(x_axis) - 5, max(x_axis) + 5,
+              min(y_axis) - 5, max(y_axis) * 1.05])
+elif plots.count('total_penstock_cost'): pass # TODO Make look pretty
+else:
+    plt.plot(x_axis, y_axis, 'ro')
+    plt.axis([min(x_axis) - 5, max(x_axis) + 5,
+              min(y_axis) - 5, max(y_axis) * 1.05])
+
+if len(plots):
+    plt.show()
 

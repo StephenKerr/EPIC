@@ -5,11 +5,12 @@
            --precipitation 1600 \
            --potential_evaporation 400 \
            --catchment_area 15000000 \
-           --pipe_file pipes_1.csv \
+           --pipe_file pipes_0.csv \
            --reliability 0.7 \
            --efficiency 0.82 \
            --market_price 0.03 \
            --interest 0.05 \
-           --plot FIT \
+           --plots capacity \
+           --heads 50,100 \
            --verbose
 
