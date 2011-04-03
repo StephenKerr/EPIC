@@ -455,6 +455,10 @@ if plots.count('penstock_length'): # {{{
     if opts.heads: p_penstock_length.plot(x_axis, penstock_length_y_axis, 'bo')
     else:          p_penstock_length.plot(x_axis, penstock_length_y_axis, '-')
     
+    p_capacity.set_title('Capacity')
+    p_capacity.set_ylabel('Capacity (kW)')
+    p_capacity.set_xlabel('Head (m)')
+    
     p_penstock_length.axis([min(x_axis) - 5, max(x_axis) + 5,
                      min(penstock_length_y_axis) - 5, max(penstock_length_y_axis) * 1.05])
     
@@ -470,6 +474,10 @@ if plots.count('avg_flow_rate'): # {{{
     
     if opts.heads: p_avg_flow_rate.plot(x_axis, avg_flow_rate_y_axis, 'bo')
     else:          p_avg_flow_rate.plot(x_axis, avg_flow_rate_y_axis, '-')
+    
+    p_capacity.set_title('Capacity')
+    p_capacity.set_ylabel('Capacity (kW)')
+    p_capacity.set_xlabel('Head (m)')
     
     p_avg_flow_rate.axis([min(x_axis) - 5, max(x_axis) + 5,
                      min(avg_flow_rate_y_axis) - 5, max(avg_flow_rate_y_axis) * 1.05])
@@ -487,6 +495,10 @@ if plots.count('design_flow'): # {{{
     if opts.heads: p_design_flow.plot(x_axis, design_flow_y_axis, 'bo')
     else:          p_design_flow.plot(x_axis, design_flow_y_axis, '-')
     
+    p_capacity.set_title('Capacity')
+    p_capacity.set_ylabel('Capacity (kW)')
+    p_capacity.set_xlabel('Head (m)')
+    
     p_design_flow.axis([min(x_axis) - 5, max(x_axis) + 5,
                      min(design_flow_y_axis) - 5, max(design_flow_y_axis) * 1.05])
     
@@ -502,6 +514,10 @@ if plots.count('fit'): # {{{
     
     if opts.heads: p_fit.plot(x_axis, fit_y_axis, 'bo')
     else:          p_fit.plot(x_axis, fit_y_axis, '-')
+    
+    p_capacity.set_title('Capacity')
+    p_capacity.set_ylabel('Capacity (kW)')
+    p_capacity.set_xlabel('Head (m)')
     
     p_fit.axis([min(x_axis) - 5, max(x_axis) + 5,
                      min(fit_y_axis) - 5, max(fit_y_axis) * 1.05])
@@ -519,6 +535,10 @@ if plots.count('capacity'): # {{{
     if opts.heads: p_capacity.plot(x_axis, capacity_y_axis, 'bo')
     else:          p_capacity.plot(x_axis, capacity_y_axis, '-')
     
+    p_capacity.set_title('Capacity')
+    p_capacity.set_ylabel('Capacity (kW)')
+    p_capacity.set_xlabel('Head (m)')
+    
     p_capacity.axis([min(x_axis) - 5, max(x_axis) + 5,
                      min(capacity_y_axis) - 5, max(capacity_y_axis) * 1.05])
     
@@ -534,6 +554,10 @@ if plots.count('total_penstock_cost'): # {{{
     
     if opts.heads: p_total_penstock_cost.plot(x_axis, total_penstock_cost_y_axis, 'bo')
     else:          p_total_penstock_cost.plot(x_axis, total_penstock_cost_y_axis, '-')
+    
+    p_total_penstock_cost.set_title('Total_penstock_cost')
+    p_total_penstock_cost.set_ylabel('Total_penstock_cost (GBP)')
+    p_total_penstock_cost.set_xlabel('Head (m)')
     
     p_total_penstock_cost.axis([min(x_axis) - 5, max(x_axis) + 5,
                      min(total_penstock_cost_y_axis) - 5, max(total_penstock_cost_y_axis) * 1.05])
@@ -551,6 +575,10 @@ if plots.count('total_project_cost'): # {{{
     if opts.heads: p_total_project_cost.plot(x_axis, total_project_cost_y_axis, 'bo')
     else:          p_total_project_cost.plot(x_axis, total_project_cost_y_axis, '-')
     
+    p_total_project_cost.set_title('Total_project_cost')
+    p_total_project_cost.set_ylabel('Total_project_cost (GBP)')
+    p_total_project_cost.set_xlabel('Head (m)')
+    
     p_total_project_cost.axis([min(x_axis) - 5, max(x_axis) + 5,
                      min(total_project_cost_y_axis) - 5, max(total_project_cost_y_axis) * 1.05])
     
@@ -566,6 +594,10 @@ if plots.count('annual_revenue'): # {{{
     
     if opts.heads: p_annual_revenue.plot(x_axis, annual_revenue_y_axis, 'bo')
     else:          p_annual_revenue.plot(x_axis, annual_revenue_y_axis, '-')
+    
+    p_annual_revenue.set_title('Annual_revenue')
+    p_annual_revenue.set_ylabel('Annual_revenue (GBP)')
+    p_annual_revenue.set_xlabel('Head (m)')
     
     p_annual_revenue.axis([min(x_axis) - 5, max(x_axis) + 5,
                      min(annual_revenue_y_axis) - 5, max(annual_revenue_y_axis) * 1.05])
@@ -583,6 +615,10 @@ if plots.count('payback_period'): # {{{
     if opts.heads: p_payback_period.plot(x_axis, payback_period_y_axis, 'bo')
     else:          p_payback_period.plot(x_axis, payback_period_y_axis, '-')
     
+    p_payback_period.set_title('payback_period')
+    p_payback_period.set_ylabel('payback_period (years)')
+    p_payback_period.set_xlabel('Head (m)')
+    
     p_payback_period.axis([min(x_axis) - 5, max(x_axis) + 5,
                      min(payback_period_y_axis) - 5, max(payback_period_y_axis) * 1.05])
     
@@ -599,6 +635,10 @@ if plots.count('cost_per_kw'): # {{{
     if opts.heads: p_cost_per_kw.plot(x_axis, cost_per_kw_y_axis, 'bo')
     else:          p_cost_per_kw.plot(x_axis, cost_per_kw_y_axis, '-')
     
+    p_cost_per_kw.set_title('Cost_per_kw')
+    p_cost_per_kw.set_ylabel('Cost_per_kw (GBP/kW)')
+    p_cost_per_kw.set_xlabel('Head (m)')
+    
     p_cost_per_kw.axis([min(x_axis) - 5, max(x_axis) + 5,
                      min(cost_per_kw_y_axis) - 5, max(cost_per_kw_y_axis) * 1.05])
     
@@ -614,6 +654,10 @@ if plots.count('annual_roi'): # {{{
     
     if opts.heads: p_annual_roi.plot(x_axis, annual_roi_y_axis, 'bo')
     else:          p_annual_roi.plot(x_axis, annual_roi_y_axis, '-')
+    
+    p_annual_roi.set_title('Annual_roi')
+    p_annual_roi.set_ylabel('Annual_roi (%)')
+    p_annual_roi.set_xlabel('Head (m)')
     
     p_annual_roi.axis([min(x_axis) - 5, max(x_axis) + 5,
                      min(annual_roi_y_axis) - 5, max(annual_roi_y_axis) * 1.05])
