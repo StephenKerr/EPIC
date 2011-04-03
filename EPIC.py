@@ -123,8 +123,8 @@ for line in pipe_string.splitlines():
 if opts.aar < 850:
     opts.aae = (0.00061 * aar + 0.475) * aae
 
-# There are four optimum schemes to be chosen, each for a different economic factor.
-# Cost/kW, Payback Period, Annual ROI, Annual Revenue
+# There are optimum schemes to be chosen, each for a different economic factor.
+# Cost/kW, Payback Period, Annual ROI, Annual Revenue, Capacity
 # Initialise optimum schemes {{{
 scheme_cost_per_kw      = {'diameter'              : 0.0,
                            'material'              : '',
@@ -183,8 +183,14 @@ if opts.plots:
 
 # If no heads are specified then just compare all possible heads up to the maximum
 if opts.heads:
-    heads = opts.heads.split(',')
-    for i, h in enumerate(heads): heads[i] = int(h)
+    heads = str(opts.heads).split(',')
+    head_schemes = []
+    for i, h in enumerate(heads):
+        heads[i] = int(h)
+        if heads[i] > max_H:
+            print 'Error: Head is too large for catchment area. Exiting'
+            sys.exit(1)
+
 else:
     heads = range(1, int(ceil(max_H)))
 
@@ -370,81 +376,66 @@ for h in heads: ### for each head {{{
         scheme_capacity['annual_roi']     = annual_return_on_investment
         scheme_capacity['annual_revenue'] = annual_revenue
         # }}} End of Capacity
-        
+    
+    if opts.heads:
+        head_scheme = {'diameter'       :   pipe['diameter'],
+                       'material'       :   pipe['material'],
+                       'head'           :   h,
+                       'capacity'       :   capacity,
+                       'project_cost'   :   total_project_cost,
+                       'cost_per_kw'    :   cost_per_kw,
+                       'payback_period' :   payback_period,
+                       'annual_roi'     :   annual_return_on_investment,
+                       'annual_revenue' :   annual_revenue}
+        head_schemes.append(head_scheme)
+
 ### }}} End of for each head loop
 
 # Print results {{{
 # Now we have finished the calculations we can print the results in a table
-#results2 = PrettyTable(['Scheme',
-#                        'Head (m)',
-#                        'Diameter (m)',
-#                        'Material',
-#                        'Capacity (kW)',
-#                        'Annual Revenue (GBP)',
-#                        'Project Cost (GBP)',
-#                        'Cost/kW (GBP/kW)'])
-results = PrettyTable(['Detail',
-                       'Optimum Cost/kW',
-                       'Optimum Capacity',
-                       'Optimum Payback',
-                       'Optimum Revenue',
-                       'Optimal ROI'])
-results.add_row(['Diameter',
-                 scheme_cost_per_kw['diameter'],
-                 scheme_capacity['diameter'],
-                 scheme_payback_period['diameter'],
-                 scheme_annual_revenue['diameter'],
-                 scheme_annual_roi['diameter']])
-results.add_row(['Material',
-                 scheme_cost_per_kw['material'],
-                 scheme_capacity['material'],
-                 scheme_payback_period['material'],
-                 scheme_annual_revenue['material'],
-                 scheme_annual_roi['material']])
-results.add_row(['Head',
-                 scheme_cost_per_kw['head'],
+results = PrettyTable(['Scheme',
+                       'Head (m)',
+                       'Mat',
+                       'Diam (m)',
+                       'Cap (kW)',
+                       'Rev/Yr (GBP)',
+                       'Proj Cost (GBP)',
+                       'Payback Period (Yr)',
+                       'Cost/kW (GBP/kW)'])
+
+results.add_row(['Optimum Capacity',
                  scheme_capacity['head'],
-                 scheme_payback_period['head'],
+                 scheme_capacity['material'],
+                 '%.02f' % scheme_capacity['diameter'],
+                 '%.02f' % scheme_capacity['capacity'],
+                 '%.02f' % scheme_capacity['annual_revenue'],
+                 '%.02f' % scheme_capacity['project_cost'],
+                 '%.02f' % scheme_capacity['payback_period'],
+                 '%.02f' % scheme_capacity['cost_per_kw']])
+
+results.add_row(['Optimum Revenue',
                  scheme_annual_revenue['head'],
-                 scheme_annual_roi['head']])
-results.add_row(['Capacity',
-                 scheme_cost_per_kw['capacity'],
-                 scheme_capacity['capacity'],
-                 scheme_payback_period['capacity'],
-                 scheme_annual_revenue['capacity'],
-                 scheme_annual_roi['capacity']])
-results.add_row(['Project Cost',
-                 scheme_cost_per_kw['project_cost'],
-                 scheme_capacity['project_cost'],
-                 scheme_payback_period['project_cost'],
-                 scheme_annual_revenue['project_cost'],
-                 scheme_annual_roi['project_cost']])
-results.add_row(['Cost/kW',
-                 scheme_cost_per_kw['cost_per_kw'],
-                 scheme_capacity['cost_per_kw'],
-                 scheme_payback_period['cost_per_kw'],
-                 scheme_annual_revenue['cost_per_kw'],
-                 scheme_annual_roi['cost_per_kw']])
-results.add_row(['Payback Period',
-                 scheme_cost_per_kw['payback_period'],
-                 scheme_capacity['payback_period'],
-                 scheme_payback_period['payback_period'],
-                 scheme_annual_revenue['payback_period'],
-                 scheme_annual_roi['payback_period']])
-results.add_row(['Annual ROI',
-                 scheme_cost_per_kw['annual_roi'],
-                 scheme_capacity['annual_roi'],
-                 scheme_payback_period['annual_roi'],
-                 scheme_annual_revenue['annual_roi'],
-                 scheme_annual_roi['annual_roi']])
-results.add_row(['Annual Revenue',
-                 scheme_cost_per_kw['annual_revenue'],
-                 scheme_capacity['annual_revenue'],
-                 scheme_payback_period['annual_revenue'],
-                 scheme_annual_revenue['annual_revenue'],
-                 scheme_annual_roi['annual_revenue']])
+                 scheme_annual_revenue['material'],
+                 '%.02f' % scheme_annual_revenue['diameter'],
+                 '%.02f' % scheme_annual_revenue['capacity'],
+                 '%.02f' % scheme_annual_revenue['annual_revenue'],
+                 '%.02f' % scheme_annual_revenue['project_cost'],
+                 '%.02f' % scheme_annual_revenue['payback_period'],
+                 '%.02f' % scheme_annual_revenue['cost_per_kw']])
+if opts.heads:
+    for scheme in head_schemes:
+        results.add_row(['User Specified',
+                         scheme['head'],
+                         scheme['material'],
+                         '%.02f' % scheme['diameter'],
+                         '%.02f' % scheme['capacity'],
+                         '%.02f' % scheme['annual_revenue'],
+                         '%.02f' % scheme['project_cost'],
+                         '%.02f' % scheme['payback_period'],
+                         '%.02f' % scheme['cost_per_kw']])
+
+print 'Input file: ', opts.pipe_file
 print results
-print opts.pipe_file
 # }}} End of Print results
 
 # Plot results {{{

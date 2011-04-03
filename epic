@@ -11,5 +11,5 @@
            --market_price 0.03 \
            --interest 0.05 \
            --plots annual_revenue,capacity,total_project_cost,payback_period,cost_per_kw \
-           --verbose
+           --heads 50,100
 
